@@ -1,0 +1,131 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - "http://localhost:3000"
+                  - "http://localhost:5173"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - PATCH
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: true
+                maxAge: 3600
+
+          routes:
+
+            # ── Auth (PUBLIC — no JWT filter) ─────────────────────
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/auth/**
+
+            # ── User internal (NO AuthFilter — service-to-service) ─
+            # Must be defined BEFORE the general user-service route
+            # so it matches first. Internal calls come from auth-service
+            # via Feign, not from the browser.
+            - id: user-service-internal
+              uri: lb://user-service
+              predicates:
+                - Path=/api/users/internal/**
+
+            # ── User Service (protected) ──────────────────────────
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - AuthFilter
+
+            # ── Course Service ────────────────────────────────────
+            - id: course-service
+              uri: lb://course-service
+              predicates:
+                - Path=/api/courses/**
+              filters:
+                - AuthFilter
+
+            # ── AI Service ────────────────────────────────────────
+            - id: ai-service
+              uri: lb://ai-service
+              predicates:
+                - Path=/api/ai/**
+              filters:
+                - AuthFilter
+
+            # ── Interview Service (REST) ───────────────────────────
+            - id: interview-service
+              uri: lb://interview-service
+              predicates:
+                - Path=/api/interviews/**
+              filters:
+                - AuthFilter
+
+            # ── Interview Service (WebSocket) ─────────────────────
+            - id: interview-ws
+              uri: lb:ws://interview-service
+              predicates:
+                - Path=/ws/**
+
+            # ── Notification Service ──────────────────────────────
+            - id: notification-service
+              uri: lb://notification-service
+              predicates:
+                - Path=/api/notifications/**
+              filters:
+                - AuthFilter
+
+            # ── Analytics Service ─────────────────────────────────
+            - id: analytics-service
+              uri: lb://analytics-service
+              predicates:
+                - Path=/api/analytics/**
+              filters:
+                - AuthFilter
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+    registry-fetch-interval-seconds: 5
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+
+jwt:
+  secret: ${JWT_SECRET:local-dev-secret-key-must-be-at-least-32-characters}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty: INFO

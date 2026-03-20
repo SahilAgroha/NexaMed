@@ -1,0 +1,29 @@
+# ── Local dev profile ─────────────────────────────────────────────
+# Run with: mvn spring-boot:run -Dspring-boot.run.profiles=local
+# Eureka must already be running on localhost:8761
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:5173"
+            allowedMethods: ["GET","POST","PUT","DELETE","PATCH","OPTIONS"]
+            allowedHeaders: "*"
+            allowCredentials: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+jwt:
+  secret: local-dev-secret-key-must-be-at-least-32-characters-long
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.nexamed.gateway: DEBUG

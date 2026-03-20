@@ -1,0 +1,48 @@
+# ── Environment ──────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Maven ────────────────────────────────────────────────────────
+**/target/
+**/*.jar
+**/*.war
+**/.mvn/wrapper/maven-wrapper.jar
+
+# ── Node ─────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ── IDE ──────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Docker ───────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Logs ─────────────────────────────────────────────────────────
+*.log
+logs/
+
+# env
+.env
+backend/.env
+
+# frontend
+node_modules/
+dist/
+
+# backend
+target/
+*.log
+
+# IDE
+.idea/
+.vscode/

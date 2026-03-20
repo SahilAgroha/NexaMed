@@ -1,0 +1,82 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: auth-service
+
+  # ── Supabase PostgreSQL ─────────────────────────────────────────
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/auth}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:Sahil444Agroha}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5        # keep low for Supabase free tier
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  jpa:
+    hibernate:
+      ddl-auto: update            # auto-creates tables on first run
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: auth_service
+        hbm2ddl:
+          create_namespaces: true
+  # ── Remote Redis ────────────────────────────────────────────────
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: 2000ms
+
+  # ── Google OAuth2 ───────────────────────────────────────────────
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: email, profile
+            redirect-uri: "{baseUrl}/api/auth/oauth2/callback/{registrationId}"
+
+# ── Eureka ──────────────────────────────────────────────────────
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+
+# ── JWT ─────────────────────────────────────────────────────────
+jwt:
+  secret: ${JWT_SECRET:local-dev-secret-key-must-be-at-least-32-characters}
+  expiration: 86400000            # 24 hours in ms
+  refresh-expiration: 604800000   # 7 days in ms
+
+# ── Actuator ────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+# OpenFeign
+feign:
+  circuitbreaker:
+    enabled: true   # enables fallback when user-service is unreachable
+  client:
+    config:
+      default:
+        connect-timeout: 3000
+        read-timeout: 3000

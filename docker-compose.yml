@@ -1,0 +1,205 @@
+version: '3.8'
+
+# ══════════════════════════════════════════════════════════════════
+# NexaMed Docker Compose
+#
+# What runs here:   All 8 Spring Boot services + Eureka
+# What runs remote: Redis + Kafka (your VPS)
+# What runs cloud:  PostgreSQL (Supabase)
+#
+# Usage:
+#   docker-compose up -d                    start all
+#   docker-compose up -d eureka-server      start single service
+#   docker-compose logs -f course-service   tail logs
+#   docker-compose down                     stop all
+# ══════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── 1. Service Registry ─────────────────────────────────────────
+  eureka-server:
+    build: ./backend/eureka-server
+    container_name: nexamed-eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - nexamed-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── 2. API Gateway ───────────────────────────────────────────────
+  api-gateway:
+    build: ./backend/api-gateway
+    container_name: nexamed-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - nexamed-net
+    restart: unless-stopped
+
+  # ── 3. Auth Service ──────────────────────────────────────────────
+  auth-service:
+    build: ./backend/auth-service
+    container_name: nexamed-auth
+    ports:
+      - "8081:8081"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=${SUPABASE_AUTH_DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${SUPABASE_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SUPABASE_DB_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    networks:
+      - nexamed-net
+    restart: unless-stopped
+
+  # ── 4. User Service ──────────────────────────────────────────────
+  user-service:
+    build: ./backend/user-service
+    container_name: nexamed-user
+    ports:
+      - "8082:8082"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=${SUPABASE_USER_DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${SUPABASE_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SUPABASE_DB_PASSWORD}
+    networks:
+      - nexamed-net
+    restart: unless-stopped
+
+  # ── 5. Course Service ────────────────────────────────────────────
+  course-service:
+    build: ./backend/course-service
+    container_name: nexamed-course
+    ports:
+      - "8083:8083"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=${SUPABASE_COURSE_DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${SUPABASE_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SUPABASE_DB_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS}
+    networks:
+      - nexamed-net
+    restart: unless-stopped
+
+  # ── 6. AI Service ────────────────────────────────────────────────
+  ai-service:
+    build: ./backend/ai-service
+    container_name: nexamed-ai
+    ports:
+      - "8084:8084"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=${SUPABASE_AI_DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${SUPABASE_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SUPABASE_DB_PASSWORD}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    networks:
+      - nexamed-net
+    restart: unless-stopped
+
+  # ── 7. Interview Service ─────────────────────────────────────────
+  interview-service:
+    build: ./backend/interview-service
+    container_name: nexamed-interview
+    ports:
+      - "8085:8085"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=${SUPABASE_INTERVIEW_DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${SUPABASE_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SUPABASE_DB_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS}
+    networks:
+      - nexamed-net
+    restart: unless-stopped
+
+  # ── 8. Notification Service ──────────────────────────────────────
+  notification-service:
+    build: ./backend/notification-service
+    container_name: nexamed-notification
+    ports:
+      - "8086:8086"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS}
+    networks:
+      - nexamed-net
+    restart: unless-stopped
+
+  # ── 9. Analytics Service ─────────────────────────────────────────
+  analytics-service:
+    build: ./backend/analytics-service
+    container_name: nexamed-analytics
+    ports:
+      - "8087:8087"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=${SUPABASE_ANALYTICS_DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${SUPABASE_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SUPABASE_DB_PASSWORD}
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS}
+    networks:
+      - nexamed-net
+    restart: unless-stopped
+
+  # ── 10. React Frontend ───────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: nexamed-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - nexamed-net
+    restart: unless-stopped
+
+networks:
+  nexamed-net:
+    driver: bridge
