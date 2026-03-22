@@ -30,19 +30,3 @@ docker-compose.override.yml
 # ── Logs ─────────────────────────────────────────────────────────
 *.log
 logs/
-
-# env
-.env
-backend/.env
-
-# frontend
-node_modules/
-dist/
-
-# backend
-target/
-*.log
-
-# IDE
-.idea/
-.vscode/

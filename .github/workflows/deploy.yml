@@ -1,0 +1,85 @@
+# ════════════════════════════════════════════════════════════════
+# NexaMed CD Pipeline
+# Triggers only on push to main after CI passes
+# Deploys to your VPS via SSH
+# ════════════════════════════════════════════════════════════════
+name: NexaMed Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Build all Docker images ─────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build and push each service image
+      - name: Build and push all images
+        run: |
+          SERVICES="eureka-server api-gateway auth-service user-service course-service ai-service interview-service notification-service analytics-service"
+          for svc in $SERVICES; do
+            echo "Building $svc..."
+            docker buildx build \
+              --platform linux/amd64 \
+              --push \
+              --tag ${{ secrets.DOCKERHUB_USERNAME }}/nexamed-$svc:latest \
+              --tag ${{ secrets.DOCKERHUB_USERNAME }}/nexamed-$svc:${{ github.sha }} \
+              ./backend/$svc
+          done
+
+          echo "Building frontend..."
+          docker buildx build \
+            --platform linux/amd64 \
+            --push \
+            --tag ${{ secrets.DOCKERHUB_USERNAME }}/nexamed-frontend:latest \
+            --build-arg VITE_API_URL=/api \
+            ./frontend
+
+      # ── Deploy to VPS via SSH ───────────────────────────────────
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/nexamed
+
+            # Pull latest images
+            docker compose pull
+
+            # Rolling restart — zero downtime
+            docker compose up -d --no-deps --scale eureka-server=1 eureka-server
+            sleep 20    # wait for Eureka to be healthy before others restart
+
+            docker compose up -d --no-deps \
+              api-gateway auth-service user-service \
+              course-service ai-service interview-service \
+              notification-service analytics-service frontend
+
+            # Clean up old images
+            docker image prune -f
+
+            echo "Deployed: $(date)"
+            docker compose ps
+
+      # ── Health check after deploy ───────────────────────────────
+      - name: Health check
+        run: |
+          sleep 30
+          curl -f https://${{ secrets.VPS_HOST }}/api/auth/health || exit 1
+          echo "Health check passed!"

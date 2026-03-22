@@ -15,7 +15,7 @@
 	<groupId>com.nexamed</groupId>
 	<artifactId>analytics-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<n>analytics-service</n>
+	<name>analytics-service</name>
 	<description>NexaMed Analytics Service</description>
 
 	<properties>

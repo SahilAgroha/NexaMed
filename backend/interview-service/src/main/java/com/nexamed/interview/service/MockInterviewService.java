@@ -5,7 +5,10 @@ import com.nexamed.interview.dto.SessionRequest;
 import com.nexamed.interview.dto.SessionResponse;
 import com.nexamed.interview.dto.SubmitAnswerRequest;
 import com.nexamed.interview.event.InterviewCompletedEvent;
-import com.nexamed.interview.model.*;
+import com.nexamed.interview.model.InterviewQuestion;
+import com.nexamed.interview.model.InterviewSession;
+import com.nexamed.interview.model.InterviewType;
+import com.nexamed.interview.model.SessionStatus;
 import com.nexamed.interview.repository.InterviewQuestionRepository;
 import com.nexamed.interview.repository.InterviewSessionRepository;
 import jakarta.persistence.EntityManager;
@@ -17,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor

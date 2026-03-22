@@ -1,4 +1,4 @@
-package com.nexamed.interview_service;
+package com.nexamed.interview;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

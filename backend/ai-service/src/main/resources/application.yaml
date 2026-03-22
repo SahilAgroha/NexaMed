@@ -26,7 +26,7 @@ spring:
   # Jackson — handle Java 8 date/time types in JSON
   jackson:
     serialization:
-      write-dates-as-timestamps: false
+      WRITE_DATES_AS_TIMESTAMPS: false
 
 eureka:
   client:
@@ -37,14 +37,20 @@ eureka:
     lease-renewal-interval-in-seconds: 10
 
 # OpenAI config
-openai:
+#openai:
+#  api:
+#    key: ${OPENAI_API_KEY}
+#    url: https://api.openai.com/v1/chat/completions
+#    model: gpt-4o-mini      # cheaper than gpt-4, still excellent for medical quizzes
+#    max-tokens: 2000
+#    temperature: 0.7
+#    timeout: 60
+    # seconds — GPT can be slow
+gemini:
   api:
-    key: ${OPENAI_API_KEY}
-    url: https://api.openai.com/v1/chat/completions
-    model: gpt-4o-mini      # cheaper than gpt-4, still excellent for medical quizzes
-    max-tokens: 2000
-    temperature: 0.7
-    timeout: 60             # seconds — GPT can be slow
+    key: ${GEMINI_API_KEY:AIzaSyAotIwu0eL6q9xPxCJAfonZM5A5YaOuvWM}
+    url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent
+
 
 management:
   endpoints:

@@ -2,7 +2,8 @@ package com.nexamed.ai.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nexamed.ai.client.OpenAIClient;
+import com.nexamed.ai.client.GeminiClient;
+//import com.nexamed.ai.client.OpenAIClient;
 import com.nexamed.ai.dto.EvalRequest;
 import com.nexamed.ai.dto.EvalResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +18,10 @@ import java.util.List;
 @Slf4j
 public class InterviewEvalService {
 
-    private final OpenAIClient openAIClient;
+//    private final OpenAIClient openAIClient;
+    private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
+
 
     public EvalResponse evaluateAnswer(EvalRequest request) {
 
@@ -63,7 +66,7 @@ public class InterviewEvalService {
                 request.getSpecialty() != null ? request.getSpecialty() : "General Medicine"
         );
 
-        String raw = openAIClient.complete(systemPrompt, userPrompt);
+        String raw = geminiClient.generate(systemPrompt, userPrompt);
         return parseEval(raw);
     }
 

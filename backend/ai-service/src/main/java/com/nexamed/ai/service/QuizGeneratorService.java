@@ -2,7 +2,8 @@ package com.nexamed.ai.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nexamed.ai.client.OpenAIClient;
+import com.nexamed.ai.client.GeminiClient;
+//import com.nexamed.ai.client.OpenAIClient;
 import com.nexamed.ai.dto.QuizQuestion;
 import com.nexamed.ai.dto.QuizRequest;
 import com.nexamed.ai.dto.QuizResponse;
@@ -17,8 +18,9 @@ import java.util.List;
 @Slf4j
 public class QuizGeneratorService {
 
-    private final OpenAIClient openAIClient;
+//    private final OpenAIClient openAIClient;
     private final ObjectMapper objectMapper;
+    private final GeminiClient geminiClient;
 
     public QuizResponse generateQuiz(QuizRequest request) {
         long start = System.currentTimeMillis();
@@ -58,7 +60,7 @@ public class QuizGeneratorService {
                 request.getDifficulty()
         );
 
-        String rawResponse = openAIClient.complete(systemPrompt, userPrompt);
+        String rawResponse = geminiClient.generate(systemPrompt, userPrompt);
         List<QuizQuestion> questions = parseQuestions(rawResponse);
 
         return QuizResponse.builder()

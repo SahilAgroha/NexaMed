@@ -2,7 +2,8 @@ package com.nexamed.ai.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nexamed.ai.client.OpenAIClient;
+import com.nexamed.ai.client.GeminiClient;
+//import com.nexamed.ai.client.OpenAIClient;
 import com.nexamed.ai.dto.CaseSimRequest;
 import com.nexamed.ai.dto.CaseSimResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,8 @@ import java.util.UUID;
 @Slf4j
 public class CaseSimulatorService {
 
-    private final OpenAIClient openAIClient;
+//    private final OpenAIClient openAIClient;
+    private final GeminiClient geminiClient;
     private final ObjectMapper objectMapper;
 
     public CaseSimResponse generateCase(CaseSimRequest request) {
@@ -54,7 +56,7 @@ public class CaseSimulatorService {
                 complaint
         );
 
-        String raw = openAIClient.complete(systemPrompt, userPrompt);
+        String raw = geminiClient.generate(systemPrompt, userPrompt);
         return parseCase(raw);
     }
 

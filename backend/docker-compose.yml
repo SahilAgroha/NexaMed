@@ -1,0 +1,216 @@
+version: "3.9"
+
+services:
+
+  # ─────────────────────────────────────────
+  # 🐘 PostgreSQL
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # ─────────────────────────────────────────
+  # 🔴 Redis
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  # ─────────────────────────────────────────
+  # 🧠 Zookeeper
+  # ─────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  # ─────────────────────────────────────────
+  # 📩 Kafka
+  # ─────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  # ─────────────────────────────────────────
+  # 🌐 Eureka Server
+  # ─────────────────────────────────────────
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+
+  # ─────────────────────────────────────────
+  # 🔐 Auth Service
+  # ─────────────────────────────────────────
+  auth-service:
+    build: ./auth-service
+    depends_on:
+      - postgres
+      - redis
+      - eureka-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    ports:
+      - "8081:8081"
+
+  # ─────────────────────────────────────────
+  # 👤 User Service
+  # ─────────────────────────────────────────
+  user-service:
+    build: ./user-service
+    depends_on:
+      - postgres
+      - eureka-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    ports:
+      - "8082:8082"
+
+  # ─────────────────────────────────────────
+  # 📚 Course Service
+  # ─────────────────────────────────────────
+  course-service:
+    build: ./course-service
+    depends_on:
+      - postgres
+      - kafka
+      - eureka-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    ports:
+      - "8083:8083"
+
+  # ─────────────────────────────────────────
+  # 🤖 AI Service
+  # ─────────────────────────────────────────
+  ai-service:
+    build: ./ai-service
+    depends_on:
+      - postgres
+      - eureka-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/nexamed
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    ports:
+      - "8084:8084"
+
+  # ─────────────────────────────────────────
+  # 🎤 Interview Service
+  # ─────────────────────────────────────────
+  interview-service:
+    build: ./interview-service
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - eureka-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    ports:
+      - "8085:8085"
+
+  # ─────────────────────────────────────────
+  # 🔔 Notification Service
+  # ─────────────────────────────────────────
+  notification-service:
+    build: ./notification-service
+    depends_on:
+      - redis
+      - kafka
+      - eureka-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATA_REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    ports:
+      - "8086:8086"
+
+  # ─────────────────────────────────────────
+  # 📊 Analytics Service
+  # ─────────────────────────────────────────
+  analytics-service:
+    build: ./analytics-service
+    depends_on:
+      - postgres
+      - kafka
+      - eureka-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    ports:
+      - "8087:8087"
+
+  # ─────────────────────────────────────────
+  # 🚪 API Gateway
+  # ─────────────────────────────────────────
+  api-gateway:
+    build: ./api-gateway
+    depends_on:
+      - eureka-server
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8080:8080"
+
+# ─────────────────────────────────────────
+# 💾 Volumes
+# ─────────────────────────────────────────
+volumes:
+  postgres_data:
